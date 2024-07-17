@@ -1,0 +1,82 @@
+apiVersion: apps.tanzu.vmware.com/v1
+kind: ContainerApp
+metadata:
+  annotations:
+    apps.tanzu.vmware.com/promotable: ""
+    apps.tanzu.vmware.com/promote-group: ContainerApp/single-image-multi-app
+    containerapp.apps.tanzu.vmware.com/class: kubernetes
+  name: single-image-multi-app
+spec:
+  content:
+    buildTimestamp: "2024-07-17T23:20:31Z"
+    packageRefName: single-image-multi-app.apps.local
+    summary: image:418adc4 @ 2024-07-17T23:20:31Z
+    version: 20240717.2320.31595
+  image: us-west1-docker.pkg.dev/app-last-mile/nwebb/tanzu-platform-catalog@sha256:418adc4d26c0e337cacc6372cfb80cfd64d42d0decdcd08d1e1c4d6b9be98a72
+  nonSecretEnv:
+  - name: JAVA_TOOL_OPTIONS
+    value: -Dmanagement.endpoint.health.probes.add-additional-paths=true -Dmanagement.health.probes.enabled=true
+      -Dserver.port=8080
+  ports:
+  - name: main
+    port: 8080
+  probes:
+    liveness:
+      httpGet:
+        path: /livez
+        port: 8080
+        scheme: HTTP
+    readiness:
+      httpGet:
+        path: /readyz
+        port: 8080
+        scheme: HTTP
+    startup:
+      failureThreshold: 120
+      httpGet:
+        path: /readyz
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 1
+      periodSeconds: 1
+  relatedRefs:
+  - for: kubernetes.list-replicas
+    kind: Pod
+    labelSelector: containerapp.apps.tanzu.vmware.com/app-name=single-image-multi-app
+  - apiGroup: apps
+    for: kubernetes.service-binding-target
+    kind: Deployment
+    name: single-image-multi-app
+  - for: kubernetes.service-target
+    kind: Service
+    name: single-image-multi-app
+  - for: kubernetes.scale-replicas
+    keyPath: .data['values.yml']->[yaml].replicas
+    kind: Secret
+    name: single-image-multi-app-values
+  - for: kubernetes.scale-resources
+    keyPath: .data['values.yml']->[yaml].resources
+    kind: Secret
+    name: single-image-multi-app-values
+  - for: kubernetes.set-secret-env
+    keyPath: .data['values.yml']->[yaml].secretEnv
+    kind: Secret
+    name: single-image-multi-app-values
+  - apiGroup: packaging.carvel.dev
+    for: kubernetes.delete
+    kind: PackageInstall
+    name: single-image-multi-app
+  - apiGroup: data.packaging.carvel.dev
+    for: kubernetes.delete
+    kind: Package
+    name: single-image-multi-app.apps.local.20240717.2320.31595
+  - for: kubernetes.delete
+    kind: Secret
+    name: single-image-multi-app-values
+  - for: kubernetes.set-content-hash
+    keyPath: .data['values.yml']->[yaml].contentHash
+    kind: Secret
+    name: single-image-multi-app-values
+  resources:
+    cpu: 300m
+    memory: 1Gi
